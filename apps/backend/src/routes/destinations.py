@@ -2,37 +2,147 @@ from flask import Blueprint, request, jsonify
 
 destinations_bp = Blueprint('destinations', __name__)
 
-# Simulação de Banco de Dados
-destinos = [
-    {"id": 1, "nome": "Paris", "pais": "França"},
-    {"id": 2, "nome": "Miracatu", "pais": "Brasil"}
+DESTINATIONS_DB = [
+    {
+        "id": 1, 
+        "nome": "Caverna do Diabo", 
+        "cidade": "Eldorado", 
+        "estado": "SP", 
+        "pais": "Brasil"
+    },
+    {
+        "id": 2, 
+        "nome": "Parque Nacional dos Lençóis Maranhenses", 
+        "cidade": "Barreirinhas", 
+        "estado": "MA", 
+        "pais": "Brasil"
+    }
 ]
 
-# 1. READ (GET) - Listar todos
+# FUNÇÃO GET ALL
 @destinations_bp.route('/', methods=['GET'])
-def get_destinations():
-    return jsonify(destinos), 200
+def get_all():
+    """
+    Lista todos os destinos turísticos
+    ---
+    tags:
+      - Destinations
+    responses:
+      200:
+        description: Lista recuperada com sucesso
+    """
+    return jsonify(DESTINATIONS_DB), 200
 
-# 2. CREATE (POST) - Adicionar novo
+# FUNÇÃO GET BY ID
+@destinations_bp.route('/<int:id>', methods=['GET'])
+def get_by_id(id):
+    """
+    Lista um destino pelo ID
+    ---
+    tags:
+      - Destinations
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Destino encontrado
+      404:
+        description: Destino não encontrado
+    """
+    res = next((d for d in DESTINATIONS_DB if d['id'] == id), None)
+    return jsonify(res) if res else (jsonify({"error": "Destino não encontrado"}), 404)
+
+# FUNÇÃO POST
 @destinations_bp.route('/', methods=['POST'])
-def add_destination():
-    novo_dado = request.get_json() # Pega o que o usuário enviou
-    destinos.append(novo_dado)
-    return jsonify({"mensagem": "Destino adicionado!", "dados": novo_dado}), 201
+def create():
+    """
+    Cadastra um novo destino
+    ---
+    tags:
+      - Destinations
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+            nome:
+              type: string
+            cidade:
+              type: string
+            estado:
+              type: string
+            pais:
+              type: string
+    responses:
+      201:
+        description: Criado com sucesso
+    """
+    novo = request.get_json()
+    DESTINATIONS_DB.append(novo)
+    return jsonify(novo), 201
 
-# 3. UPDATE (PUT) - Editar um existente
+# FUNÇÃO PUT
 @destinations_bp.route('/<int:id>', methods=['PUT'])
-def update_destination(id):
-    dados_atualizados = request.get_json()
-    for d in destinos:
-        if d['id'] == id:
-            d.update(dados_atualizados)
-            return jsonify({"mensagem": "Atualizado com sucesso", "destino": d}), 200
-    return jsonify({"erro": "Não encontrado"}), 404
+def update(id):
+    """
+    Atualiza dados de um destino
+    ---
+    tags:
+      - Destinations
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nome:
+              type: string
+            cidade:
+              type: string
+            estado:
+              type: string
+            pais:
+              type: string
+    responses:
+      200:
+        description: Atualizado com sucesso
+    """
+    dados = request.get_json()
+    destino = next((d for d in DESTINATIONS_DB if d['id'] == id), None)
+    if destino:
+        destino.update(dados)
+        return jsonify(destino), 200
+    return jsonify({"error": "Not found"}), 404
 
-# 4. DELETE (DELETE) - Remover
+# FUNÇÃO DELETE
 @destinations_bp.route('/<int:id>', methods=['DELETE'])
-def delete_destination(id):
-    global destinos
-    destinos = [d for d in destinos if d['id'] != id]
-    return jsonify({"mensagem": f"Destino {id} removido"}), 200
+def delete(id):
+    """
+    Exclui um destino
+    ---
+    tags:
+      - Destinations
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Removido com sucesso
+    """
+    global DESTINATIONS_DB
+    DESTINATIONS_DB = [d for d in DESTINATIONS_DB if d['id'] != id]
+    return jsonify({"message": "Removido"}), 200

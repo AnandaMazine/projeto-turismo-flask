@@ -1,6 +1,9 @@
 from flask import Flask
 from flasgger import Swagger
-from routes.destinations_route import destinations_bp
+from .routes.destinations import destinations_bp
+from .routes.hotels import hotels_bp
+from .routes.tours import tours_bp
+from .routes.bookings import bookings_bp
 
 def create_app():
     app = Flask(__name__)
@@ -12,8 +15,10 @@ def create_app():
     }
     Swagger(app)
 
-    # Espaço reservado para registrar Blueprints depois
     app.register_blueprint(destinations_bp, url_prefix='/destinations')
+    app.register_blueprint(hotels_bp, url_prefix='/hotels')
+    app.register_blueprint(tours_bp, url_prefix='/tours')
+    app.register_blueprint(bookings_bp, url_prefix='/bookings')
 
     return app
 
