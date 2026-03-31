@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+from pydantic import ValidationError
+from ..schemas.booking_schema import BookingSchema
 
 bookings_bp = Blueprint('bookings', __name__)
 
@@ -32,7 +34,7 @@ def get_all():
       200:
         description: Lista recuperada com sucesso
     """
-    return jsonify(TOURS_DB),200
+    return jsonify(BOOKINGS_DB), 200
 
 @bookings_bp.route('/<int:id>', methods=['GET'])
 def get_by_id(id):
@@ -67,25 +69,21 @@ def create():
         in: body
         required: true
         schema:
-          type: object
-          properties:
-            id:
-               type: integer
-            hospede:
-                type: string
-            data_reserva:
-                type: string
-            valor_total:
-                type: number
-            status:
-                type: string            
+          $ref: '#/definitions/Booking'
     responses:
       201:
         description: Criado com sucesso
+      400:
+        description: Erro de Validação
+        schema:
+          $ref: '#/definitions/Error'
     """
-    novo = request.get_json()
-    BOOKINGS_DB.append(novo)
-    return jsonify(novo), 201
+    try:
+      data = BookingSchema(**request.json)
+      BOOKINGS_DB.append(data.model_dump())
+      return jsonify(data.model_dump()), 201
+    except ValidationError as err:
+      return jsonify({"errors": err.errors()}), 400
 
 @bookings_bp.route('/<int:id>', methods=['PUT'])
 def update(id):
@@ -102,26 +100,27 @@ def update(id):
         in: body
         required: true
         schema:
-           type: object
-           properties:
-              hospede:
-                type: string
-              data_reserva:
-                type: string
-              valor_total:
-                type: number
-              status:
-                type: string
+          $ref: '#/definitions/Booking'
     responses:
-      201:
-        description: Atualizado com sucesso 
+      200:
+        description: Atualizado com sucesso
+      400:
+        description: Erro de validação
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Reserva não encontrada
     """
-    dados = request.get_json()
     booking = next((b for b in BOOKINGS_DB if b['id'] == id), None)
-    if booking:
-        booking.update(dados)
-        return jsonify(booking), 201
-    return jsonify({"error": "Reserva não encontrada"}), 404
+    if not booking:
+      return jsonify({"error": "Reserva não encontrada"}), 404
+    try:
+      dados = BookingSchema(**request.json)
+      booking.update(dados.model_dump())
+      return jsonify(booking), 200
+    except ValidationError as err:
+      return jsonify({"errors": err.errors()}), 400
+    
 
 @bookings_bp.route('/<int:id>', methods=['DELETE'])
 def delete(id):
@@ -139,6 +138,6 @@ def delete(id):
       200:
         description: Removido com sucesso
     """  
-    global TOURS_DB
-    TOURS_DB = [b for b in TOURS_DB if b['id'] != id]
+    global BOOKINGS_DB
+    BOOKINGS_DB = [b for b in BOOKINGS_DB if b['id'] != id]
     return jsonify({"message": "Removido"}), 200

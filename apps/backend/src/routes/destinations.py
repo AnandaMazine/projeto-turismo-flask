@@ -1,4 +1,7 @@
 from flask import Blueprint, request, jsonify
+from pydantic import ValidationError
+from ..schemas.destination_schema import DestinationSchema
+from models import Destination
 
 destinations_bp = Blueprint('destinations', __name__)
 
@@ -59,7 +62,7 @@ def get_by_id(id):
 @destinations_bp.route('/', methods=['POST'])
 def create():
     """
-    Cadastra um novo destino
+    Criar um novo destino
     ---
     tags:
       - Destinations
@@ -68,31 +71,27 @@ def create():
         in: body
         required: true
         schema:
-          type: object
-          properties:
-            id:
-              type: integer
-            nome:
-              type: string
-            cidade:
-              type: string
-            estado:
-              type: string
-            pais:
-              type: string
+          $ref: '#/definitions/Destination'
     responses:
       201:
         description: Criado com sucesso
+      400:
+        description: Erro de validação
+        schema:
+          $ref: '#/definitions/Error'
     """
-    novo = request.get_json()
-    DESTINATIONS_DB.append(novo)
-    return jsonify(novo), 201
+    try:
+        data = DestinationSchema(**request.json)
+        DESTINATIONS_DB.append(data.model_dump())
+        return jsonify(data.model_dump()), 201
+    except ValidationError as err:
+        return jsonify({"errors": err.errors()}), 400
 
 # FUNÇÃO PUT
 @destinations_bp.route('/<int:id>', methods=['PUT'])
 def update(id):
     """
-    Atualiza dados de um destino
+    Atualiza um destino existente
     ---
     tags:
       - Destinations
@@ -105,26 +104,26 @@ def update(id):
         in: body
         required: true
         schema:
-          type: object
-          properties:
-            nome:
-              type: string
-            cidade:
-              type: string
-            estado:
-              type: string
-            pais:
-              type: string
+          $ref: '#/definitions/Destination'
     responses:
       200:
         description: Atualizado com sucesso
+      400:
+        description: Erro de validação
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Destino não encontrado
     """
-    dados = request.get_json()
     destino = next((d for d in DESTINATIONS_DB if d['id'] == id), None)
-    if destino:
-        destino.update(dados)
+    if not destino:
+        return jsonify({"error": "Destino não encontrado"}), 404
+    try:
+        dados = DestinationSchema(**request.json)
+        destino.update(dados.model_dump())
         return jsonify(destino), 200
-    return jsonify({"error": "Not found"}), 404
+    except ValidationError as err:
+        return jsonify({"errors": err.errors()}), 400
 
 # FUNÇÃO DELETE
 @destinations_bp.route('/<int:id>', methods=['DELETE'])

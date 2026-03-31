@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
+from pydantic import ValidationError
+from ..schemas.hotel_schema import HotelSchema
 
-hotels_bp = Blueprint('hotels',__name__)
+hotels_bp = Blueprint('hotels', __name__)
 
 HOTELS_DB = [
     {
@@ -66,25 +68,21 @@ def create():
         in: body
         required: true
         schema:
-          type: object
-          properties:
-            id:
-              type: integer
-            nome_hotel:
-              type: string
-            estrelas:
-              type: integer
-            valor_diaria:
-              type: number
-            cidade:
-              type: string
+          $ref: '#/definitions/Hotel'
     responses:
       201:
         description: Criado com sucesso
+      400:
+        description: Erro de validação
+        schema:
+          $ref: '#/definitions/Error'
     """
-    novo = request.get_json()
-    HOTELS_DB.append(novo)
-    return jsonify(novo),201
+    try:
+        data = HotelSchema(**request.json)
+        HOTELS_DB.append(data.model_dump())
+        return jsonify(data.model_dump()), 201
+    except ValidationError as err:
+        return jsonify({"errors": err.errors()}), 400
 
 #FUNÇÃO PUT
 @hotels_bp.route('/<int:id>', methods=['PUT'])
@@ -103,26 +101,26 @@ def update_hotels(id):
         in: body
         required: true
         schema:
-          type: object
-          properties:
-            nome_hotel:
-              type: string
-            estrelas:
-              type: integer
-            valor_diaria:
-              type: number
-            cidade:
-              type: string
+          $ref: '#/definitions/Hotel'
     responses:
       200:
         description: Atualizado com sucesso
+      400:
+        description: Erro de validação
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Hotel não encontrado
     """
-    dados = request.get_json()
     hotel = next((h for h in HOTELS_DB if h['id'] == id), None)
-    if hotel:
-        hotel.update(dados)
+    if not hotel:
+        return jsonify({"error": "Hotel não encontrado"}), 404
+    try:
+        dados = HotelSchema(**request.json)
+        hotel.update(dados.model_dump())
         return jsonify(hotel), 200
-    return jsonify({"error": "Hotel não encontrado"}), 404
+    except ValidationError as err:
+        return jsonify({"errors": err.errors()}), 400
    
 #FUNÇÃO DELETE 
 @hotels_bp.route('/<int:id>', methods=['DELETE'])

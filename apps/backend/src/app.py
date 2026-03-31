@@ -1,19 +1,49 @@
 from flask import Flask
 from flasgger import Swagger
-from .routes.destinations import destinations_bp
-from .routes.hotels import hotels_bp
-from .routes.tours import tours_bp
-from .routes.bookings import bookings_bp
+from pydantic import ValidationError
+import os
+from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
+from .database import init_db, db
+
+from .schemas.destination_schema import DestinationSchema
+from .schemas.hotel_schema import HotelSchema
+from .schemas.tour_schema import TourSchema
+from .schemas.booking_schema import BookingSchema
+
+load_dotenv()
+
+db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
+    init_db(app)
 
-    # Configuração do Swagger
-    app.config['SWAGGER'] = {
-        'title': 'Projeto Turismo Flask',
-        'uiversion': 3
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "API de Turismo",
+            "description": "API para gestão de viagens e reservas",
+            "version": "1.0.0"
+        },
+        "definitions": {
+            "Destination": DestinationSchema.model_json_schema(),
+            "Hotel": HotelSchema.model_json_schema(),
+            "Tour": TourSchema.model_json_schema(),
+            "Booking": BookingSchema.model_json_schema(),
+            "Error": {
+                "type": "object",
+                "properties": {"error": {"type": "string"}}
+            }
+        }
     }
-    Swagger(app)
+
+    Swagger(app, template=swagger_template)
+
+    from .routes.destinations import destinations_bp
+    from .routes.hotels import hotels_bp
+    from .routes.tours import tours_bp
+    from .routes.bookings import bookings_bp
 
     app.register_blueprint(destinations_bp, url_prefix='/destinations')
     app.register_blueprint(hotels_bp, url_prefix='/hotels')
@@ -21,6 +51,8 @@ def create_app():
     app.register_blueprint(bookings_bp, url_prefix='/bookings')
 
     return app
+
+app = create_app()
 
 if __name__ == "__main__":
     app = create_app()

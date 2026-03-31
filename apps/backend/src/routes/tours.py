@@ -1,4 +1,6 @@
 from flask import Blueprint, request, jsonify
+from pydantic import ValidationError
+from ..schemas.tour_schema import TourSchema
 
 tours_bp = Blueprint('tours', __name__)
 
@@ -65,25 +67,21 @@ def create():
         in: body
         required: true
         schema:
-          type: object
-          properties:
-            id:
-               type: integer
-            nome_passeio:
-                type: string
-            duracao:
-                type: string
-            preco:
-                type: number
-            dificuldade:
-                type: string
+          $ref: '#/definitions/Tour'
     responses:
       201:
         description: Criado com sucesso
+      400:
+        description: Erro de Validação
+        schema:
+          $ref: '#/definitions/Error'
     """
-    novo = request.get_json()
-    TOURS_DB.append(novo)
-    return jsonify(novo), 201
+    try:
+        data = TourSchema(**request.json)
+        TOURS_DB.append(data.model_dump())
+        return jsonify(data.model_dump()), 201
+    except ValidationError as err:
+        return jsonify({"errors": err.errors()}), 400
 
 @tours_bp.route('/<int:id>', methods=['PUT'])
 def update(id):
@@ -100,26 +98,26 @@ def update(id):
         in: body
         required: true
         schema:
-           type: object
-           properties:
-             nome_passeio:
-               type: string
-             duracao:
-               type: string
-             preco:
-               type: number
-             dificuldade:
-               type: string       
+          $ref: '#/definitions/Tour'
     responses:
-       200:
-          description: Atualizado com sucesso 
+      200:
+        description: Atualizado com sucesso
+      400:
+        description: Erro de validação
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Passeio não encontrado
     """
-    dados = request.get_json()
-    tour = next ((t for t in TOURS_DB if t['id'] == id), None)
-    if tour:
-        tour.update(dados)
+    tour = next((t for t in TOURS_DB if t['id'] == id), None)
+    if not tour:
+        return jsonify({"error": "Passeio não encontrado"}), 404
+    try:
+        dados = TourSchema(**request.json)
+        tour.update(dados.model_dump())
         return jsonify(tour), 200
-    return jsonify({"error": "Passeio não encontrado"}), 404
+    except ValidationError as err:
+        return jsonify({"errors": err.errors()}), 400
 
 @tours_bp.route('/<int:id>', methods=['DELETE'])
 def delete(id):
