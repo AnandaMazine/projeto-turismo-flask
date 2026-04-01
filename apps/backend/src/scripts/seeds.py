@@ -5,9 +5,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 from dotenv import load_dotenv
 load_dotenv()
 
-from app import create_app
-from database import db
-from models import Destination, Hotel
+from src.app import create_app
+from src.database import db
+from src.models import Destination, Hotel
 
 DESTINOS = [
     {"id": 1, "nome": "Iporanga", "cidade": "Iporanga", "estado": "SP", "pais": "Brasil"},

@@ -1,20 +1,16 @@
 from flask import Flask
 from flasgger import Swagger
-from pydantic import ValidationError
 import os
 from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
 from .database import init_db, db
 
 # SCHEMAS
-from schemas.destination_schema import DestinationSchema
-from schemas.hotel_schema import HotelSchema
-from schemas.tour_schema import TourSchema
-from schemas.booking_schema import BookingSchema
+from .schemas.destination_schema import DestinationSchema
+from .schemas.hotel_schema import HotelSchema
+from .schemas.tour_schema import TourSchema
+from .schemas.booking_schema import BookingSchema
 
 load_dotenv()
-
-db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
@@ -41,10 +37,10 @@ def create_app():
 
     Swagger(app, template=swagger_template)
 
-    from routes.destinations import destinations_bp
-    from routes.hotels import hotels_bp
-    from routes.tours import tours_bp
-    from routes.bookings import bookings_bp
+    from .routes.destinations import destinations_bp
+    from .routes.hotels import hotels_bp
+    from .routes.tours import tours_bp
+    from .routes.bookings import bookings_bp
 
     app.register_blueprint(destinations_bp)
     app.register_blueprint(hotels_bp)

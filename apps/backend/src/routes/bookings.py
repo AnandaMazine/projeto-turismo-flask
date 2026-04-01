@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from database import db
-from models import Booking
-from schemas.booking_schema import BookingSchema
+from ..database import db
+from ..models import Booking
+from ..schemas.booking_schema import BookingSchema
 from pydantic import ValidationError
 
 bookings_bp = Blueprint('bookings', __name__, url_prefix='/bookings')
@@ -35,7 +35,7 @@ def get_by_id(id):
     reserva = Booking.query.get(id)
 
     if not reserva:
-       return jsonify({"error":"Reserva não encontrada"})
+        return jsonify({"error": "Reserva não encontrada"}), 404
     
     return jsonify(reserva.to_dict()), 200
 

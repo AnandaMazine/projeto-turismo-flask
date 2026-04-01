@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
-from database import db
-from models import Hotel
+from ..database import db
+from ..models import Hotel
 from pydantic import ValidationError
-from schemas.hotel_schema import HotelSchema
+from ..schemas.hotel_schema import HotelSchema
 
 hotels_bp = Blueprint('hotels', __name__, url_prefix='/hotels')
 

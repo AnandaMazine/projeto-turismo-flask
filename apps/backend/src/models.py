@@ -1,4 +1,4 @@
-from database import db
+from .database import db
 
 class Destination(db.Model):
     __tablename__ = 'destinations'
