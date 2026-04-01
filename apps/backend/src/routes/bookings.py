@@ -28,6 +28,12 @@ def get_by_id(id):
     ---
     tags:
       - Bookings
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do registro
     responses:
       200:
         description: OK
@@ -47,9 +53,17 @@ def create():
     ---
     tags:
       - Bookings
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Booking'
     responses:
       200:
-        description: OK
+        description: Reserva criada com sucesso
+        schema:
+          $ref: '#/definitions/Booking'
     """
     try:
        data = BookingSchema(**request.json)
@@ -68,6 +82,15 @@ def update(id):
     ---
     tags:
       - Bookings
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          $ref: '#/definitions/Booking'
     responses:
       200:
         description: OK
@@ -96,9 +119,17 @@ def delete(id):
     ---
     tags:
       - Bookings
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do registro a ser removido
     responses:
       200:
         description: OK
+      404:
+        description: Não encontrado
     """  
     reserva = Booking.query.get(id)
 

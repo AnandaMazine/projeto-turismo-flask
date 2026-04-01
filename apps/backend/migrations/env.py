@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 # 1. CONFIGURAÇÃO DE CAMINHOS (PATH)
 # Define a pasta raiz do backend (onde está o alembic.ini)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Adiciona a pasta 'src' ao sistema para o Python achar database.py e models.py
-sys.path.insert(0, os.path.join(BASE_DIR, 'src'))
+# Adiciona a pasta raiz do backend ao sys.path para que o pacote src seja importável
+sys.path.insert(0, BASE_DIR)
 
 load_dotenv()
 
@@ -22,13 +22,12 @@ if config.config_file_name is not None:
 
 # 4. IMPORTAÇÃO DOS SEUS MODELS (TURISMO)
 try:
-    import database
-    import models
+    from src import database, models
     # O MetaData avisa ao Alembic quais tabelas existem no seu código
     target_metadata = database.db.metadata
 except ImportError as e:
     print(f"❌ Erro de importação no Alembic: {e}")
-    print(f"DEBUG: Tentando buscar em: {os.path.join(BASE_DIR, 'src')}")
+    print(f"DEBUG: Tentando buscar em: {BASE_DIR}")
     target_metadata = None
 
 # 5. CONFIGURAÇÃO DA URL DO BANCO

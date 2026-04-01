@@ -28,6 +28,12 @@ def get_by_id(id):
     ---
     tags:
       - Destinations
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do registro
     responses:
       200:
         description: OK
@@ -46,6 +52,12 @@ def create():
     ---
     tags:
       - Destinations
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Destination'
     responses:
       200:
         description: OK
@@ -67,6 +79,16 @@ def update(id):
     ---
     tags:
       - Destinations
+      - Bookings
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          $ref: '#/definitions/Destination'
     responses:
       200:
         description: OK
@@ -95,9 +117,17 @@ def delete(id):
     ---
     tags:
       - Destinations
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do registro a ser removido
     responses:
       200:
         description: OK
+      404:
+        description: Não encontrado
     """
     destino = Destination.query.get(id)
     

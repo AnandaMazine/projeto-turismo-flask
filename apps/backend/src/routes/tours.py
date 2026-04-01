@@ -28,6 +28,12 @@ def get_by_id(id):
     ---
     tags:
       - Tours
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do registro
     responses:
       200:
         description: OK
@@ -45,6 +51,12 @@ def create():
     ---
     tags:
       - Tours
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Tour'
     responses:
       200:
         description: OK
@@ -66,6 +78,16 @@ def update(id):
     ---
     tags:
       - Tours
+      - Bookings
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          $ref: '#/definitions/Tour'
     responses:
       200:
         description: OK
@@ -94,9 +116,17 @@ def delete(id):
     ---
     tags:
       - Tours
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do registro a ser removido
     responses:
       200:
         description: OK
+      404:
+        description: Não encontrado
     """
     passeio = Tour.query.get(id)
 

@@ -28,6 +28,12 @@ def get_by_id(id):
     ---
     tags:
       - Hotels
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do registro
     responses:
       200:
         description: OK
@@ -46,6 +52,12 @@ def create():
     ---
     tags:
       - Hotels
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Hotel'
     responses:
       200:
         description: OK
@@ -68,6 +80,16 @@ def update_hotels(id):
     ---
     tags:
       - Hotels
+      - Bookings
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+      - in: body
+        name: body
+        schema:
+          $ref: '#/definitions/Hotel'
     responses:
       200:
         description: OK
@@ -96,9 +118,17 @@ def delete_hotels(id):
     ---
     tags:
       - Hotels
+    parameters:
+      - in: path
+        name: id
+        type: integer
+        required: true
+        description: ID do registro a ser removido
     responses:
       200:
         description: OK
+      404:
+        description: Não encontrado
     """
     hotel = Hotel.query.get(id)
 

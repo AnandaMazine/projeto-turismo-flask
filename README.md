@@ -13,11 +13,6 @@ API de turismo desenvolvida com foco em gerenciamento de destinos, hotéis, rese
 ## Repositório
 https://github.com/AnandaMazine/projeto-turismo-flask
 
-## Pré-requisitos
-- Docker
-- Python 3.14+
-- `uv` instalado (Hatch/UV environment manager)
-
 ## Como rodar o projeto
 1. Clone o repositório:
    ```bash
