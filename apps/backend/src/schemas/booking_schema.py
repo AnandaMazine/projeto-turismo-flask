@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class BookingSchema(BaseModel):
-    id: int
+    id: int | None = None
     hospede: str
     hotel_id: int
     data_reserva: str

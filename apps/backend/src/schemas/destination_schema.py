@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class DestinationSchema(BaseModel):
-    id: int
+    id: int | None = None
     nome: str
     cidade: str
     estado: str

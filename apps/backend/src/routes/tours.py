@@ -78,7 +78,6 @@ def update(id):
     ---
     tags:
       - Tours
-      - Bookings
     parameters:
       - in: path
         name: id

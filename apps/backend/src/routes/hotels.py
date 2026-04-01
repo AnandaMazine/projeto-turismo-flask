@@ -80,7 +80,6 @@ def update_hotels(id):
     ---
     tags:
       - Hotels
-      - Bookings
     parameters:
       - in: path
         name: id
