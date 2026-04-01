@@ -1,27 +1,10 @@
 from flask import Blueprint, request, jsonify
+from database import db
+from models import Booking
+from schemas.booking_schema import BookingSchema
 from pydantic import ValidationError
-from ..schemas.booking_schema import BookingSchema
 
-bookings_bp = Blueprint('bookings', __name__)
-
-BOOKINGS_DB = [
-    {
-        "id": 1,
-        "hospede": "Ananda Mazine",
-        "hotel_id": 1,
-        "data_reserva": "2026-04-15",
-        "valor_total": 700.00,
-        "status": "Confirmado"
-    },
-    {
-        "id": 2,
-        "hospede": "João Silva",
-        "hotel_id": 2,
-        "data_reserva": "2026-05-20",
-        "valor_total": 1780.00,
-        "status": "Pendente"
-    }
-]
+bookings_bp = Blueprint('bookings', __name__, url_prefix='/bookings')
 
 @bookings_bp.route('/', methods=['GET'])
 def get_all():
@@ -32,30 +15,30 @@ def get_all():
       - Bookings
     responses:
       200:
-        description: Lista recuperada com sucesso
+        description: OK
     """
-    return jsonify(BOOKINGS_DB), 200
+    bookings = Booking.query.all()
+    result = [BookingSchema(**b.to_dict()).model_dump() for b in bookings]
+    return jsonify(result), 200
 
 @bookings_bp.route('/<int:id>', methods=['GET'])
 def get_by_id(id):
     """
-    Lista todas as reservas
+    Lista uma reseva específica pelo ID
     ---
     tags:
       - Bookings
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
     responses:
       200:
-        description: Reserva encontrada
-      404:
-        description: Reserva não encontrada
-    """    
-    res = next((b for b in BOOKINGS_DB if b['id'] == id), None)
-    return jsonify(res) if res else (jsonify({"error":"Reserva não encontrado"}), 404)
+        description: OK
+    """
+    reserva = Booking.query.get(id)
+
+    if not reserva:
+       return jsonify({"error":"Reserva não encontrada"})
+    
+    return jsonify(reserva.to_dict()), 200
+
 
 @bookings_bp.route('/', methods=['POST'])
 def create():
@@ -64,63 +47,47 @@ def create():
     ---
     tags:
       - Bookings
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          $ref: '#/definitions/Booking'
     responses:
-      201:
-        description: Criado com sucesso
-      400:
-        description: Erro de Validação
-        schema:
-          $ref: '#/definitions/Error'
+      200:
+        description: OK
     """
     try:
-      data = BookingSchema(**request.json)
-      BOOKINGS_DB.append(data.model_dump())
-      return jsonify(data.model_dump()), 201
+       data = BookingSchema(**request.json)
+       nova_reserva = Booking(**data.model_dump())
+       db.session.add(nova_reserva)
+       db.session.commit()
+       
+       return jsonify(nova_reserva.to_dict()),201
     except ValidationError as err:
       return jsonify({"errors": err.errors()}), 400
 
 @bookings_bp.route('/<int:id>', methods=['PUT'])
 def update(id):
     """
-    Atualizar uma reserva
+    Atualizar uma reserva existente
     ---
     tags:
       - Bookings
-    parameters:
-      - name: id
-        in: path
-        required: true
-      - name: body
-        in: body
-        required: true
-        schema:
-          $ref: '#/definitions/Booking'
     responses:
       200:
-        description: Atualizado com sucesso
-      400:
-        description: Erro de validação
-        schema:
-          $ref: '#/definitions/Error'
-      404:
-        description: Reserva não encontrada
+        description: OK
     """
-    booking = next((b for b in BOOKINGS_DB if b['id'] == id), None)
-    if not booking:
-      return jsonify({"error": "Reserva não encontrada"}), 404
+    reserva = Booking.query.get(id)
+
+    if not reserva:
+        return jsonify ({"error": "Reserva não encontrada"}), 404
     try:
-      dados = BookingSchema(**request.json)
-      booking.update(dados.model_dump())
-      return jsonify(booking), 200
-    except ValidationError as err:
-      return jsonify({"errors": err.errors()}), 400
-    
+        data = request.json
+        reserva.hospede = data.get('hospede', reserva.hospede)
+        reserva.data_reserva = data.get('data_reserva', reserva.data_reserva)
+        reserva.valor_total = data.get('valor_total', reserva.valor_total)
+        reserva.status = data.get('status', reserva.status)
+        reserva.hotel_id = data.get('hotel_id', reserva.hotel_id)
+        
+        db.session.commit()
+        return jsonify(reserva.to_dict()), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @bookings_bp.route('/<int:id>', methods=['DELETE'])
 def delete(id):
@@ -129,15 +96,17 @@ def delete(id):
     ---
     tags:
       - Bookings
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
     responses:
       200:
-        description: Removido com sucesso
+        description: OK
     """  
-    global BOOKINGS_DB
-    BOOKINGS_DB = [b for b in BOOKINGS_DB if b['id'] != id]
-    return jsonify({"message": "Removido"}), 200
+    reserva = Booking.query.get(id)
+
+    if not reserva:
+        return jsonify({"error": "Reserva não encontrada"}), 404
+    
+    db.session.delete(reserva)
+    db.session.commit()
+
+    return jsonify({"mensagem":"Reserva removida com sucesso"}), 200
+

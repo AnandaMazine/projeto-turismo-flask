@@ -1,25 +1,10 @@
 from flask import Blueprint, request, jsonify
+from database import db
+from models import Tour
 from pydantic import ValidationError
-from ..schemas.tour_schema import TourSchema
+from schemas.tour_schema import TourSchema
 
-tours_bp = Blueprint('tours', __name__)
-
-TOURS_DB = [
-    {
-        "id": 1,
-        "nome_passeio": "Trilha da Caverna do Diabo",
-        "duracao": "4 horas",
-        "preco": 120.00,
-        "dificuldade": "Fácil"
-    },
-    {
-        "id": 2,
-        "nome_passeio": "Circuito Lagoa Azul (4x4)",
-        "duracao": "5 horas",
-        "preco": 250.00,
-        "dificuldade": "Média"
-    }
-]
+tours_bp = Blueprint('tours', __name__, url_prefix='/tours')
 
 @tours_bp.route('/', methods=['GET'])
 def get_all():
@@ -30,9 +15,11 @@ def get_all():
       - Tours
     responses:
       200:
-        description: Lista recuperada com sucesso
+        description: OK
     """
-    return jsonify(TOURS_DB), 200
+    passeios = Tour.query.all()
+    result = [TourSchema(**t.to_dict()).model_dump() for t in passeios]
+    return jsonify(result), 200
 
 @tours_bp.route('/<int:id>', methods=['GET'])
 def get_by_id(id):
@@ -41,19 +28,15 @@ def get_by_id(id):
     ---
     tags:
       - Tours
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
     responses:
       200:
-        description: Passeio encontrado
-      404:
-        description: Passeio não encontrado
+        description: OK
     """
-    res = next((t for t in TOURS_DB if t['id'] == id), None)
-    return jsonify(res) if res else (jsonify({"error":"Passeio não encontrado"}), 404)
+    passeio = Tour.query.get(id)
+
+    if not passeio:
+      return jsonify({"error":"Passeio não encontrado"}), 404
+    return jsonify(passeio.to_dict()), 200
 
 @tours_bp.route('/', methods=['POST'])
 def create():
@@ -62,24 +45,17 @@ def create():
     ---
     tags:
       - Tours
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          $ref: '#/definitions/Tour'
     responses:
-      201:
-        description: Criado com sucesso
-      400:
-        description: Erro de Validação
-        schema:
-          $ref: '#/definitions/Error'
+      200:
+        description: OK
     """
     try:
         data = TourSchema(**request.json)
-        TOURS_DB.append(data.model_dump())
-        return jsonify(data.model_dump()), 201
+        novo_passeio = Tour (**data.model_dump())
+        db.session.add(novo_passeio)
+        db.session.commit()
+
+        return jsonify(novo_passeio.to_dict()), 201
     except ValidationError as err:
         return jsonify({"errors": err.errors()}), 400
 
@@ -90,34 +66,26 @@ def update(id):
     ---
     tags:
       - Tours
-    parameters:
-      - name: id
-        in: path
-        required: true
-      - name: body
-        in: body
-        required: true
-        schema:
-          $ref: '#/definitions/Tour'
     responses:
       200:
-        description: Atualizado com sucesso
-      400:
-        description: Erro de validação
-        schema:
-          $ref: '#/definitions/Error'
-      404:
-        description: Passeio não encontrado
+        description: OK
     """
-    tour = next((t for t in TOURS_DB if t['id'] == id), None)
+    tour = Tour.query.get(id)
+
     if not tour:
         return jsonify({"error": "Passeio não encontrado"}), 404
+    
     try:
-        dados = TourSchema(**request.json)
-        tour.update(dados.model_dump())
-        return jsonify(tour), 200
-    except ValidationError as err:
-        return jsonify({"errors": err.errors()}), 400
+        data = request.json
+        tour.nome_passeio = data.get('nome_passeio', tour.nome_passeio)
+        tour.duracao = data.get('duracao', tour.duracao)
+        tour.preco = data.get('preco', tour.preco)
+        tour.dificuldade = data.get('dificuldade', tour.dificuldade)
+        
+        db.session.commit()
+        return jsonify(tour.to_dict()), 200
+    except Exception as e:
+        return jsonify({"errors": str(e)}), 400
 
 @tours_bp.route('/<int:id>', methods=['DELETE'])
 def delete(id):
@@ -126,15 +94,16 @@ def delete(id):
     ---
     tags:
       - Tours
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
     responses:
       200:
-        description: Removido com sucesso
+        description: OK
     """
-    global TOURS_DB
-    TOURS_DB = [t for t in TOURS_DB if t['id'] != id]
-    return jsonify({"message": "Removido"}), 200
+    passeio = Tour.query.get(id)
+
+    if not passeio:
+        return jsonify({"error": "Passeio nao encontrado"}), 404
+    
+    db.session.delete(passeio)
+    db.session.commit()
+    
+    return jsonify({"message": "Passeio removido com sucesso"}), 200

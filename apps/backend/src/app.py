@@ -6,10 +6,11 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from .database import init_db, db
 
-from .schemas.destination_schema import DestinationSchema
-from .schemas.hotel_schema import HotelSchema
-from .schemas.tour_schema import TourSchema
-from .schemas.booking_schema import BookingSchema
+# SCHEMAS
+from schemas.destination_schema import DestinationSchema
+from schemas.hotel_schema import HotelSchema
+from schemas.tour_schema import TourSchema
+from schemas.booking_schema import BookingSchema
 
 load_dotenv()
 
@@ -40,15 +41,15 @@ def create_app():
 
     Swagger(app, template=swagger_template)
 
-    from .routes.destinations import destinations_bp
-    from .routes.hotels import hotels_bp
-    from .routes.tours import tours_bp
-    from .routes.bookings import bookings_bp
+    from routes.destinations import destinations_bp
+    from routes.hotels import hotels_bp
+    from routes.tours import tours_bp
+    from routes.bookings import bookings_bp
 
-    app.register_blueprint(destinations_bp, url_prefix='/destinations')
-    app.register_blueprint(hotels_bp, url_prefix='/hotels')
-    app.register_blueprint(tours_bp, url_prefix='/tours')
-    app.register_blueprint(bookings_bp, url_prefix='/bookings')
+    app.register_blueprint(destinations_bp)
+    app.register_blueprint(hotels_bp)
+    app.register_blueprint(tours_bp)
+    app.register_blueprint(bookings_bp)
 
     return app
 

@@ -1,93 +1,65 @@
 from flask import Blueprint, request, jsonify
-from pydantic import ValidationError
-from ..schemas.destination_schema import DestinationSchema
+from database import db
 from models import Destination
+from schemas.destination_schema import DestinationSchema
+from pydantic import ValidationError
 
-destinations_bp = Blueprint('destinations', __name__)
+destinations_bp = Blueprint('destinations', __name__, url_prefix='/destinations')
 
-DESTINATIONS_DB = [
-    {
-        "id": 1, 
-        "nome": "Caverna do Diabo", 
-        "cidade": "Eldorado", 
-        "estado": "SP", 
-        "pais": "Brasil"
-    },
-    {
-        "id": 2, 
-        "nome": "Parque Nacional dos Lençóis Maranhenses", 
-        "cidade": "Barreirinhas", 
-        "estado": "MA", 
-        "pais": "Brasil"
-    }
-]
-
-# FUNÇÃO GET ALL
 @destinations_bp.route('/', methods=['GET'])
 def get_all():
     """
-    Lista todos os destinos turísticos
+    Lista todos os destinos do banco de dados
     ---
     tags:
       - Destinations
     responses:
       200:
-        description: Lista recuperada com sucesso
+        description: OK
     """
-    return jsonify(DESTINATIONS_DB), 200
+    destinos = Destination.query.all()
+    result = [DestinationSchema(**d.to_dict()).model_dump() for d in destinos]
+    return jsonify(result), 200
 
-# FUNÇÃO GET BY ID
 @destinations_bp.route('/<int:id>', methods=['GET'])
 def get_by_id(id):
     """
-    Lista um destino pelo ID
+    Busca um destino específico pelo seu ID
     ---
     tags:
       - Destinations
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
     responses:
       200:
-        description: Destino encontrado
-      404:
-        description: Destino não encontrado
+        description: OK
     """
-    res = next((d for d in DESTINATIONS_DB if d['id'] == id), None)
-    return jsonify(res) if res else (jsonify({"error": "Destino não encontrado"}), 404)
+    destino = Destination.query.get(id)
+    
+    if not destino:
+        return jsonify({"error": "Destino não encontrado"}), 404
 
-# FUNÇÃO POST
+    return jsonify(destino.to_dict()), 200
+
 @destinations_bp.route('/', methods=['POST'])
 def create():
     """
-    Criar um novo destino
+    Cadastra um novo destino
     ---
     tags:
       - Destinations
-    parameters:
-      - name: body
-        in: body
-        required: true
-        schema:
-          $ref: '#/definitions/Destination'
     responses:
-      201:
-        description: Criado com sucesso
-      400:
-        description: Erro de validação
-        schema:
-          $ref: '#/definitions/Error'
+      200:
+        description: OK
     """
     try:
         data = DestinationSchema(**request.json)
-        DESTINATIONS_DB.append(data.model_dump())
-        return jsonify(data.model_dump()), 201
+        novo_destino = Destination(**data.model_dump())
+        db.session.add(novo_destino)
+        db.session.commit()
+        
+        return jsonify(novo_destino.to_dict()), 201
     except ValidationError as err:
         return jsonify({"errors": err.errors()}), 400
 
-# FUNÇÃO PUT
 @destinations_bp.route('/<int:id>', methods=['PUT'])
 def update(id):
     """
@@ -95,53 +67,44 @@ def update(id):
     ---
     tags:
       - Destinations
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
-      - name: body
-        in: body
-        required: true
-        schema:
-          $ref: '#/definitions/Destination'
     responses:
       200:
-        description: Atualizado com sucesso
-      400:
-        description: Erro de validação
-        schema:
-          $ref: '#/definitions/Error'
-      404:
-        description: Destino não encontrado
+        description: OK
     """
-    destino = next((d for d in DESTINATIONS_DB if d['id'] == id), None)
+    destino = Destination.query.get(id)
+    
     if not destino:
         return jsonify({"error": "Destino não encontrado"}), 404
+        
     try:
-        dados = DestinationSchema(**request.json)
-        destino.update(dados.model_dump())
-        return jsonify(destino), 200
-    except ValidationError as err:
-        return jsonify({"errors": err.errors()}), 400
+        data = request.json
+        destino.nome = data.get('nome', destino.nome)
+        destino.cidade = data.get('cidade', destino.cidade)
+        destino.estado = data.get('estado', destino.estado)
+        destino.pais = data.get('pais', destino.pais)
+        
+        db.session.commit()
+        return jsonify(destino.to_dict()), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-# FUNÇÃO DELETE
 @destinations_bp.route('/<int:id>', methods=['DELETE'])
 def delete(id):
     """
-    Exclui um destino
+    Remove um destino
     ---
     tags:
       - Destinations
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
     responses:
       200:
-        description: Removido com sucesso
+        description: OK
     """
-    global DESTINATIONS_DB
-    DESTINATIONS_DB = [d for d in DESTINATIONS_DB if d['id'] != id]
-    return jsonify({"message": "Removido"}), 200
+    destino = Destination.query.get(id)
+    
+    if not destino:
+        return jsonify({"error": "Destino não encontrado"}), 404
+        
+    db.session.delete(destino)
+    db.session.commit()
+    
+    return jsonify({"message": "Destino removido com sucesso"}), 200
